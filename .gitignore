@@ -2,6 +2,7 @@
 
 /vendor/*
 /config/app.php
+/config/.env
 
 /tmp/cache/models/*
 !/tmp/cache/models/empty
@@ -13,6 +14,7 @@
 !/tmp/sessions/empty
 /tmp/tests/*
 !/tmp/tests/empty
+/tmp/debug*
 
 /logs/*
 !/logs/empty

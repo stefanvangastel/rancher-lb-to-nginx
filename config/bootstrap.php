@@ -14,6 +14,15 @@
  */
 
 /*
+ * Load env variables
+ */
+$Loader = new josegonzalez\Dotenv\Loader(__DIR__ . '/.env');
+// Parse the .env file
+$Loader->parse();
+// Send the parsed .env file to the $_ENV variable
+$Loader->toEnv();
+
+/*
  * You can remove this if you are confident that your PHP version is sufficient.
  */
 if (version_compare(PHP_VERSION, '5.5.9') < 0) {

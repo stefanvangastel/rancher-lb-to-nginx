@@ -10,7 +10,8 @@
         "mobiledetect/mobiledetectlib": "2.*",
         "cakephp/migrations": "~1.0",
         "cakephp/plugin-installer": "*",
-        "romanpitak/nginx-config-processor": "^0.2.1"
+        "romanpitak/nginx-config-processor": "^0.2.1",
+        "josegonzalez/dotenv": "dev-master"
     },
     "require-dev": {
         "psy/psysh": "@stable",
