@@ -7,6 +7,7 @@ use RomanPitak\Nginx\Config\Scope;
 use RomanPitak\Nginx\Config\Directive;
 
 use Cake\Log\Log;
+use Cake\Network\Exception\InternalErrorException;
 
 class NginxComponent extends Component
 {
@@ -15,6 +16,22 @@ class NginxComponent extends Component
     public $newVhosts       = [];
     public $fqdns           = ['create'=>[],'remove'=>[]];
   
+    
+    public function initialize(array $config)
+    {
+        
+        //Check writeable dir:
+        if( ! is_writable( env('NGINX_SITES_DIR') )){
+            throw new InternalErrorException('No write permissions on: '.env('NGINX_SITES_DIR'));
+        }
+
+        //Check executable nginx
+        exec(env('NGINX_COMMAND').' status', $output, $return_code);
+        if( $return_code !== 0 ){
+            throw new InternalErrorException('Cannot execute `'.env('NGINX_COMMAND').'`');
+        }
+    }
+
     public function sync($loadbalancers = [])
     {
         if(empty($loadbalancers))
@@ -38,10 +55,10 @@ class NginxComponent extends Component
         $this->writeNewVhosts();
 
         //Config test 
-        //TODO
+        $this->nginxConfigtest();
 
         //Reload Nginx
-        //
+        $this->nginxReload();
 
         //Return the FQDN list to update DNS
         return $this->fqdns;
@@ -161,7 +178,8 @@ class NginxComponent extends Component
         return str_replace('#UPSTREAM_PLACEHOLDER;',$upstreamServers,$configString);
     }
 
-    private function removeUnchangedVhosts(){
+    private function removeUnchangedVhosts()
+    {
 
         //Check new in current:
         foreach($this->newVhosts as $vhostname => $newVhostconfig){
@@ -176,7 +194,8 @@ class NginxComponent extends Component
         }
     }
 
-    private function removeDeprecatedVhosts(){
+    private function removeDeprecatedVhosts()
+    {
 
         $depVhosts = array_diff_key($this->currentVhosts, $this->newVhosts);
 
@@ -193,7 +212,8 @@ class NginxComponent extends Component
         }
     }
 
-    private function writeNewVhosts(){
+    private function writeNewVhosts()
+    {
 
         if( empty($this->newVhosts) )return;
 
@@ -204,6 +224,66 @@ class NginxComponent extends Component
             file_put_contents($path.$filename, $filecontent);
 
             Log::write('debug', 'Wrote new (or updated) '.$path.$filename.' vhost config file');
+        }
+
+    }
+
+    private function nginxConfigtest()
+    {
+        exec(env('NGINX_COMMAND').' configtest', $output, $return_code);
+
+        //Check for errors (0 == no errors)
+        if( $return_code !== 0 ){
+
+            //Revert directory
+            $this->rollback();
+
+            throw new InternalErrorException('Error executing Nginx configtest: '.implode(" ",$output));
+        }
+
+        Log::write('debug', 'Nginx configtest successful:'.implode(" ",$output));
+    }
+
+    private function nginxReload()
+    {
+        exec(env('NGINX_COMMAND').' reload', $output, $return_code);
+
+        //Check for errors (0 == no errors)
+        if( $return_code !== 0 ){
+
+            //Revert directory
+            $this->nginxConfigtest();
+
+            throw new InternalErrorException('Error executing Nginx reload: '.implode(" ",$output));
+        }
+
+        Log::write('debug', 'Nginx reload successful:'.implode(" ",$output));
+    }
+
+    private function rollback(){
+
+        $path = env('NGINX_SITES_DIR');
+
+        //Delete new vhosts:
+        if( ! empty($this->newVhosts) )
+        { 
+            foreach($this->newVhosts as $filename => $filecontent)
+            {
+                //Write or update vhost files
+                unlink($path.$filename);
+                Log::write('debug', 'Rolled back creation of '.$path.$filename.' vhost config file');
+            }
+        }
+
+        //Restore old vhosts
+        if( ! empty($this->currentVhosts) )
+        { 
+            foreach($this->currentVhosts as $filename => $filecontent)
+            {
+                //Write old vhost files
+                file_put_contents($path.$filename, $filecontent);
+                Log::write('debug', 'Restored old '.$path.$filename.' vhost config file');
+            }
         }
 
     }
