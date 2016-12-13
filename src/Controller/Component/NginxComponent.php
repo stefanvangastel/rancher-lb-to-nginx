@@ -144,6 +144,10 @@ class NginxComponent extends Component
 
         $upstreamServers = null;
 
+        if(empty($loadbalancer['publicEndpoints'])){
+            return '';
+        }
+
         foreach($loadbalancer['publicEndpoints'] as $endpoint)
         {
             $upstreamServers .= Directive::create("server", $endpoint["ipAddress"].":".$endpoint["port"]);

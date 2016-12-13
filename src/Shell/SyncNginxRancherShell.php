@@ -63,7 +63,10 @@ class SyncNginxRancherShell extends Shell
         //Sync Nginx vhosts
         $fqdns = $this->Nginx->sync($loadbalancers);
 
-        $this->out("Found ".count($fqdns['create'])." new or modified FQDN's : \n- ".implode("\n- ",$fqdns['create']));
+        $this->out("Found ".count($fqdns['create'])." new or modified FQDN's");
+        if(!empty($fqdns['create'])){
+            $this->out(" - ".implode("\n - ",$fqdns['create']));
+        }
 
         //Update DNS through API
     }

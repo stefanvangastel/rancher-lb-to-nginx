@@ -28,8 +28,8 @@ class RancherComponent extends Component
     {
         $http = new Client();
 
-        //Hit Rancher API for loadbalancers
-        $apiResponse = $http->get(env('RANCHER_API_URL').'/loadbalancerservices', [],$this->defaultHttpOptions)->json;
+        //Hit Rancher API for active loadbalancers
+        $apiResponse = $http->get(env('RANCHER_API_URL').'/loadbalancerservices?state=active', [],$this->defaultHttpOptions)->json;
 
         //Check response
         if(!isset($apiResponse['data'])){
